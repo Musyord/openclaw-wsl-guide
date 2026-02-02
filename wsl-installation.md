@@ -256,19 +256,42 @@ ping 192.168.1.1
 
 在开始菜单中搜索 "PowerShell"，右键选择"以管理员身份运行"。
 
-**步骤 2**：配置 Hyper-V 防火墙规则
+**步骤 2**：配置防火墙规则
 
-执行以下 PowerShell 指令以允许必要的入站连接：
+在镜像模式下，WSL2 应用将直接暴露在 Windows 防火墙规则中。以下提供两种配置方法：
+
+#### 方法一：标准防火墙命令（推荐用于 WSL2）
+
+对于 WSL2 镜像网络模式，推荐使用标准的 Windows 防火墙命令：
 
 ```powershell
-# 允许 Hyper-V VM 接收特定的入站流量
-Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
-
-# 针对特定端口创建细颗粒度规则
-New-NetFirewallHyperVRule -DisplayName "OpenClaw-Service" -Direction Inbound -Action Allow -Protocol TCP -LocalPorts 18789 -VMCreatorId '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}'
+# 创建入站防火墙规则，允许 OpenClaw 服务端口
+New-NetFirewallRule -DisplayName "OpenClaw-Service" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 18789
 
 # 验证规则是否创建成功
-Get-NetFirewallHyperVRule -DisplayName "OpenClaw-Service" | Format-Table
+Get-NetFirewallRule -DisplayName "OpenClaw-Service" | Format-Table
+```
+
+#### 方法二：Hyper-V 防火墙命令（需要动态获取 VMCreatorId）
+
+如果需要使用 Hyper-V 防火墙管理 WSL2 流量，请先动态获取系统的 VMCreatorId：
+
+```powershell
+# 步骤 1：获取当前系统所有已注册的 VM 创建者
+Get-NetFirewallHyperVVMCreator
+```
+
+**重要说明**：`{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}` 是示例 GUID，实际值因系统而异。VMCreatorId 是 Hyper-V 防火墙用于标识特定虚拟机创建者的 GUID，**每个系统的值都不同**。
+
+```powershell
+# 步骤 2：动态获取并配置（推荐）
+# 获取所有 VMCreatorId 并配置
+Get-NetFirewallHyperVVMCreator | ForEach-Object {
+    Set-NetFirewallHyperVVMSetting -Name $_.Name -DefaultInboundAction Allow
+}
+
+# 步骤 3：创建细粒度规则
+New-NetFirewallHyperVRule -DisplayName "OpenClaw-Service" -Direction Inbound -Action Allow -Protocol TCP -LocalPorts 18789
 ```
 
 **步骤 3**：确认防火墙规则
@@ -277,7 +300,7 @@ Get-NetFirewallHyperVRule -DisplayName "OpenClaw-Service" | Format-Table
 
 ```powershell
 # 查看所有 OpenClaw 相关规则
-Get-NetFirewallHyperVRule | Where-Object {$_.DisplayName -like "*OpenClaw*"} | Format-Table
+Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*OpenClaw*"} | Format-Table
 ```
 
 **步骤 4**：测试端口连通性
@@ -599,12 +622,25 @@ grep '"bind"' ~/.openclaw/openclaw.json
 
 ### Q6: 防火墙规则创建失败
 
+**问题表现**：运行 `New-NetFirewallHyperVRule` 或 `Set-NetFirewallHyperVVMSetting` 时报错。
+
 **解决方案**:
 1. 确认以管理员身份运行 PowerShell
 2. 检查 Hyper-V 服务是否正在运行
-3. 尝试使用标准防火墙命令：
+3. **VMCreatorId 错误**：如果使用 Hyper-V 防火墙命令报错，可能是因为硬编码的 GUID 不存在于当前系统。请改用标准防火墙命令：
    ```powershell
+   # 推荐：使用标准防火墙命令（适用于 WSL2）
    New-NetFirewallRule -DisplayName "OpenClaw-Service" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 18789
+   ```
+4. **动态获取 VMCreatorId**（仅当需要使用 Hyper-V 防火墙时）：
+   ```powershell
+   # 获取系统所有 VM 创建者
+   Get-NetFirewallHyperVVMCreator
+
+   # 使用动态获取的 GUID 配置
+   Get-NetFirewallHyperVVMCreator | ForEach-Object {
+       Set-NetFirewallHyperVVMSetting -Name $_.Name -DefaultInboundAction Allow
+   }
    ```
 
 ---
