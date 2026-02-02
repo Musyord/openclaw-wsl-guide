@@ -265,10 +265,10 @@ ping 192.168.1.1
 Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
 
 # 针对特定端口创建细颗粒度规则
-New-NetFirewallHyperVRule -DisplayName "OpenClaw-Service" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 18789
+New-NetFirewallHyperVRule -DisplayName "OpenClaw-Service" -Direction Inbound -Action Allow -Protocol TCP -LocalPorts 18789 -VMCreatorId '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}'
 
 # 验证规则是否创建成功
-Get-NetFirewallRule -DisplayName "OpenClaw-Service" | Format-Table
+Get-NetFirewallHyperVRule -DisplayName "OpenClaw-Service" | Format-Table
 ```
 
 **步骤 3**：确认防火墙规则
@@ -277,7 +277,7 @@ Get-NetFirewallRule -DisplayName "OpenClaw-Service" | Format-Table
 
 ```powershell
 # 查看所有 OpenClaw 相关规则
-Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*OpenClaw*"} | Format-Table
+Get-NetFirewallHyperVRule | Where-Object {$_.DisplayName -like "*OpenClaw*"} | Format-Table
 ```
 
 **步骤 4**：测试端口连通性
