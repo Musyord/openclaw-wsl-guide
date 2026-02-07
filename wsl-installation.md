@@ -355,7 +355,7 @@ netsh interface portproxy add v4tov4 listenport=18789 listenaddress=0.0.0.0 conn
 sudo visudo
 ```
 
-在文件末尾添加以下内容（将 `spoto` 替换为你的实际用户名）：
+输入ubantu密码回车，在加载完成文件末尾添加以下内容（将 `spoto` 替换为你的实际用户名）：
 
 ```
 spoto ALL=(ALL) NOPASSWD: ALL
@@ -365,8 +365,15 @@ spoto ALL=(ALL) NOPASSWD: ALL
 
 ### 3.2 安装基础工具
 
+apt更新
+
 ```bash
-sudo apt install -y curl wget git
+sudo apt update
+```
+装curl
+
+```bash
+sudo apt install -y curl
 ```
 
 ### 3.3 安装 Opencode 工具
